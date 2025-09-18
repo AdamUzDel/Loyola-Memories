@@ -19,6 +19,11 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
 
   const albumWithPhotos = {
     ...album,
+    coverImage: album.cover_image_url || (photos.length > 0 ? photos[0].url : "/placeholder.svg"),
+    date: album.event_date || album.created_at,
+    year: album.event_date
+      ? new Date(album.event_date).getFullYear().toString()
+      : new Date(album.created_at).getFullYear().toString(),
     photos: photos.map((photo) => ({
       id: photo.id,
       url: photo.url,

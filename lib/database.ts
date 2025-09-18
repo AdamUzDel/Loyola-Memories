@@ -96,14 +96,14 @@ export async function getAlbums(filters?: {
 
 export async function getAlbumById(id: string): Promise<Album | null> {
   const supabase = createClient()
-  const { data, error } = await supabase.from("albums").select("*").eq("id", id).single()
+  const { data, error } = await supabase.from("albums").select("*").eq("id", id)
 
   if (error) {
     console.error("Error fetching album:", error)
     return null
   }
 
-  return data
+  return data && data.length > 0 ? data[0] : null
 }
 
 export async function getPhotosByAlbumId(albumId: string): Promise<Photo[]> {
@@ -113,6 +113,18 @@ export async function getPhotosByAlbumId(albumId: string): Promise<Photo[]> {
     .select("*")
     .eq("album_id", albumId)
     .order("created_at", { ascending: true })
+
+  if (error) {
+    console.error("Error fetching photos:", error)
+    return []
+  }
+
+  return data || []
+}
+
+export async function getPhotos(): Promise<Photo[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase.from("photos").select("*").order("created_at", { ascending: false })
 
   if (error) {
     console.error("Error fetching photos:", error)
@@ -176,4 +188,43 @@ export async function uploadPhoto(file: File, albumId: string): Promise<string> 
   } = supabase.storage.from("photos").getPublicUrl(fileName)
 
   return publicUrl
+}
+
+export async function updateAlbumCover(albumId: string, coverImageUrl: string): Promise<boolean> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from("albums")
+    .update({ cover_image_url: coverImageUrl, updated_at: new Date().toISOString() })
+    .eq("id", albumId)
+
+  if (error) {
+    console.error("Error updating album cover:", error)
+    return false
+  }
+
+  return true
+}
+
+export async function setAlbumCoverIfNeeded(albumId: string): Promise<void> {
+  const supabase = createClient()
+
+  // Check if album already has a cover
+  const { data: album } = await supabase.from("albums").select("cover_image_url").eq("id", albumId).single()
+
+  if (album?.cover_image_url) {
+    return // Album already has a cover
+  }
+
+  // Get the first photo in the album
+  const { data: firstPhoto } = await supabase
+    .from("photos")
+    .select("url")
+    .eq("album_id", albumId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .single()
+
+  if (firstPhoto?.url) {
+    await updateAlbumCover(albumId, firstPhoto.url)
+  }
 }

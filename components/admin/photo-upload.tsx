@@ -222,8 +222,8 @@ export function PhotoUpload() {
             original_filename: file.originalFile.name,
             url: imageUrl,
             file_size: file.file.size,
-            width: file.compressionResult?.dimensions?.width,
-            height: file.compressionResult?.dimensions?.height,
+            width: file.compressionResult?.width,
+            height: file.compressionResult?.height,
           }
 
           const response = await fetch("/api/photos", {

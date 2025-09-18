@@ -10,14 +10,29 @@ import { PhotoUpload } from "./photo-upload"
 import { AlbumManager } from "./album-manager"
 import { AdminStats } from "./admin-stats"
 import { createBrowserClient } from "@supabase/ssr"
+import { getAlbums, getPhotos } from "@/lib/database"
 
-export function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState("overview")
-  const [adminUser, setAdminUser] = useState<any>(null)
+interface Album {
+  id: string
+  title: string
+  photo_count: number
+  created_at: string
+  category: string
+}
 
 const NEXT_PUBLIC_SUPABASE_URL = 'https://hnsnaafcoriabirletuj.supabase.co'
 const NEXT_PUBLIC_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhuc25hYWZjb3JpYWJpcmxldHVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMjAyOTEsImV4cCI6MjA3MzY5NjI5MX0.AueYyLDnuqlY__Z3UMizs6vxD6DFQktafC_F4DcphOc'
 
+export function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState("overview")
+  const [adminUser, setAdminUser] = useState<any>(null)
+  const [stats, setStats] = useState({
+    totalPhotos: 0,
+    totalAlbums: 0,
+    totalViews: 0,
+    recentAlbums: [] as Album[],
+  })
+  const [loading, setLoading] = useState(true)
 
   const supabase = createBrowserClient(
     /* process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,17 +48,34 @@ const NEXT_PUBLIC_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJp
         data: { session },
       } = await supabase.auth.getSession()
       if (session?.user) {
-        const { data: adminData } = await supabase
-          .from("admin_users")
-          .select("*")
-          .eq("email", session.user.email)
-          .single()
+        setAdminUser({ email: session.user.email, full_name: session.user.user_metadata?.full_name })
+      }
+    }
 
-        setAdminUser(adminData)
+    const fetchStats = async () => {
+      try {
+        const [albums, photos] = await Promise.all([getAlbums(), getPhotos()])
+
+        // Get recent albums (last 5)
+        const recentAlbums = albums
+          .sort((a: Album, b: Album) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 5)
+
+        setStats({
+          totalPhotos: photos.length,
+          totalAlbums: albums.length,
+          totalViews: 0, // Would need view tracking system
+          recentAlbums,
+        })
+      } catch (error) {
+        console.error("Error fetching stats:", error)
+      } finally {
+        setLoading(false)
       }
     }
 
     getAdminUser()
+    fetchStats()
   }, [supabase])
 
   const handleLogout = async () => {
@@ -121,48 +153,39 @@ const NEXT_PUBLIC_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJp
             {/* Recent Activity */}
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
+                <CardTitle>Recent Albums</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {[
-                    {
-                      action: "Album Created",
-                      title: "Graduation Ceremony 2024",
-                      time: "2 hours ago",
-                      icon: FolderPlus,
-                    },
-                    {
-                      action: "Photos Uploaded",
-                      title: "45 photos added to Sports Day 2024",
-                      time: "5 hours ago",
-                      icon: Upload,
-                    },
-                    {
-                      action: "Album Updated",
-                      title: "Cultural Festival 2023",
-                      time: "1 day ago",
-                      icon: Edit,
-                    },
-                    {
-                      action: "Photos Deleted",
-                      title: "3 photos removed from Science Fair",
-                      time: "2 days ago",
-                      icon: Trash2,
-                    },
-                  ].map((activity, index) => (
-                    <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                      <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
-                        <activity.icon className="w-4 h-4 text-amber-600" />
+                {loading ? (
+                  <div className="space-y-4">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="h-16 bg-muted rounded-lg"></div>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{activity.action}</p>
-                        <p className="text-sm text-muted-foreground">{activity.title}</p>
+                    ))}
+                  </div>
+                ) : stats.recentAlbums.length > 0 ? (
+                  <div className="space-y-4">
+                    {stats.recentAlbums.map((album) => (
+                      <div key={album.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                        <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
+                          <FolderPlus className="w-4 h-4 text-amber-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{album.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {album.photo_count} photos • {album.category}
+                          </p>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(album.created_at).toLocaleDateString()}
+                        </span>
                       </div>
-                      <span className="text-xs text-muted-foreground">{activity.time}</span>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-center py-8">No albums created yet</p>
+                )}
               </CardContent>
             </Card>
 
@@ -175,7 +198,7 @@ const NEXT_PUBLIC_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJp
                       <ImageIcon className="w-6 h-6 text-blue-600" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">1,247</p>
+                      <p className="text-2xl font-bold">{loading ? "..." : stats.totalPhotos.toLocaleString()}</p>
                       <p className="text-sm text-muted-foreground">Total Photos</p>
                     </div>
                   </div>
@@ -189,7 +212,7 @@ const NEXT_PUBLIC_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJp
                       <FolderPlus className="w-6 h-6 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">25</p>
+                      <p className="text-2xl font-bold">{loading ? "..." : stats.totalAlbums}</p>
                       <p className="text-sm text-muted-foreground">Albums</p>
                     </div>
                   </div>
@@ -203,8 +226,9 @@ const NEXT_PUBLIC_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJp
                       <Users className="w-6 h-6 text-purple-600" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">2,456</p>
+                      <p className="text-2xl font-bold">{stats.totalViews.toLocaleString()}</p>
                       <p className="text-sm text-muted-foreground">Total Views</p>
+                      <p className="text-xs text-muted-foreground">Coming soon</p>
                     </div>
                   </div>
                 </CardContent>
@@ -223,55 +247,50 @@ const NEXT_PUBLIC_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJp
 
         <TabsContent value="manage" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recent Albums */}
+            {/* Recent Albums Management */}
             <Card>
               <CardHeader>
                 <CardTitle>Recent Albums</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {[
-                    {
-                      title: "Graduation Ceremony 2024",
-                      photos: 45,
-                      date: "2024-06-15",
-                      status: "published",
-                    },
-                    {
-                      title: "Sports Day 2024",
-                      photos: 67,
-                      date: "2024-03-20",
-                      status: "published",
-                    },
-                    {
-                      title: "Science Fair 2024",
-                      photos: 34,
-                      date: "2024-05-08",
-                      status: "draft",
-                    },
-                  ].map((album, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 rounded-lg border">
-                      <div>
-                        <p className="font-medium">{album.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {album.photos} photos • {new Date(album.date).toLocaleDateString()}
-                        </p>
+                {loading ? (
+                  <div className="space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="h-16 bg-muted rounded-lg"></div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={album.status === "published" ? "default" : "secondary"}>{album.status}</Badge>
-                        <Button variant="ghost" size="icon">
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                    ))}
+                  </div>
+                ) : stats.recentAlbums.length > 0 ? (
+                  <div className="space-y-3">
+                    {stats.recentAlbums.slice(0, 3).map((album) => (
+                      <div key={album.id} className="flex items-center justify-between p-3 rounded-lg border">
+                        <div>
+                          <p className="font-medium">{album.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {album.photo_count} photos • {new Date(album.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="capitalize">
+                            {album.category}
+                          </Badge>
+                          <Button variant="ghost" size="icon">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon">
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-center py-4">No albums yet</p>
+                )}
               </CardContent>
             </Card>
 
@@ -285,25 +304,15 @@ const NEXT_PUBLIC_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJp
                   <div>
                     <div className="flex justify-between text-sm mb-2">
                       <span>Photos</span>
-                      <span>2.4 GB / 10 GB</span>
+                      <span>Calculating...</span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-2">
-                      <div className="bg-amber-600 h-2 rounded-full" style={{ width: "24%" }}></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Videos</span>
-                      <span>0.8 GB / 5 GB</span>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div className="bg-blue-600 h-2 rounded-full" style={{ width: "16%" }}></div>
+                      <div className="bg-amber-600 h-2 rounded-full" style={{ width: "0%" }}></div>
                     </div>
                   </div>
 
                   <div className="pt-4 border-t">
-                    <p className="text-sm text-muted-foreground">Total: 3.2 GB used of 15 GB available</p>
+                    <p className="text-sm text-muted-foreground">Storage calculation feature coming soon</p>
                   </div>
                 </div>
               </CardContent>

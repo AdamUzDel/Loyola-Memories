@@ -56,13 +56,13 @@ const NEXT_PUBLIC_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJp
           .select("*")
           .eq("email", email)
           .eq("is_active", true)
-          .single()
+          //.single()
 
-        /* if (adminError || !adminData) {
-          setError("Access denied. Admin privileges required.")
+        if (adminError || !adminData) {
+          setError(`Access denied. Admin privileges required.`)
           await supabase.auth.signOut()
           return
-        } */
+        }
 
         onLoginSuccess()
       }

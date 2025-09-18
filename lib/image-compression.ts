@@ -13,6 +13,8 @@ export interface CompressionResult {
   originalSize: number
   compressedSize: number
   compressionRatio: number
+  height: number
+  width: number
 }
 
 // Default compression settings for school photos
@@ -65,6 +67,8 @@ export async function compressImage(
                   originalSize,
                   compressedSize,
                   compressionRatio,
+                  height: canvas.height,
+                  width: canvas.width,
                 })
               } else {
                 reject(new Error("Failed to compress image"))
@@ -136,6 +140,8 @@ export async function compressImages(
         originalSize: file.size,
         compressedSize: file.size,
         compressionRatio: 0,
+        height: 0,
+        width: 0,
       })
     }
   }
