@@ -104,9 +104,9 @@ export function Header({ onSearch, onFilterToggle }: HeaderProps) {
               <a href="#years" className="text-foreground hover:text-primary transition-colors">
                 Years
               </a>
-              <a href="/admin" className="text-foreground hover:text-primary transition-colors">
+              {/* <a href="/admin" className="text-foreground hover:text-primary transition-colors">
                 Admin
-              </a>
+              </a> */}
             </div>
           </nav>
         )}
