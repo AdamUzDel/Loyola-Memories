@@ -1,7 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { X, ChevronLeft, ChevronRight, Download, Share2 } from "lucide-react"
+import type React from "react"
+
+import { useState, useEffect, useRef } from "react"
+import { X, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface Photo {
@@ -20,6 +22,13 @@ interface PhotoModalProps {
 
 export function PhotoModal({ photo, photos, onClose, onNavigate }: PhotoModalProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
+  // Added touch handling state for swipe functionality
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
+  const modalRef = useRef<HTMLDivElement>(null)
+
+  // Minimum swipe distance to trigger navigation
+  const minSwipeDistance = 50
 
   useEffect(() => {
     const index = photos.findIndex((p) => p.id === photo.id)
@@ -53,6 +62,30 @@ export function PhotoModal({ photo, photos, onClose, onNavigate }: PhotoModalPro
     onNavigate(photos[newIndex])
   }
 
+  // Added touch event handlers for swipe functionality
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+
+    if (isLeftSwipe) {
+      handleNext()
+    } else if (isRightSwipe) {
+      handlePrevious()
+    }
+  }
+
   const handleDownload = () => {
     const link = document.createElement("a")
     link.href = photo.url
@@ -77,35 +110,46 @@ export function PhotoModal({ photo, photos, onClose, onNavigate }: PhotoModalPro
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
-      {/* Close Button */}
+    <div
+      ref={modalRef}
+      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* Enhanced close button with better visibility and mobile sizing */}
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-4 right-4 z-10 text-white hover:bg-white/20"
+        className="absolute top-4 right-4 z-10 bg-black/60 backdrop-blur-sm border border-white/20 text-white hover:bg-black/80 hover:border-white/40 w-12 h-12 md:w-10 md:h-10"
         onClick={onClose}
       >
-        <X className="w-6 h-6" />
+        <X className="w-7 h-7 md:w-6 md:h-6" />
       </Button>
 
-      {/* Navigation Buttons */}
+      {/* Enhanced navigation buttons with better visibility and mobile sizing */}
       <Button
         variant="ghost"
         size="icon"
-        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-white hover:bg-white/20"
+        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-black/60 backdrop-blur-sm border border-white/20 text-white hover:bg-black/80 hover:border-white/40 w-14 h-14 md:w-12 md:h-12"
         onClick={handlePrevious}
       >
-        <ChevronLeft className="w-8 h-8" />
+        <ChevronLeft className="w-8 h-8 md:w-7 md:h-7" />
       </Button>
 
       <Button
         variant="ghost"
         size="icon"
-        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 text-white hover:bg-white/20"
+        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-black/60 backdrop-blur-sm border border-white/20 text-white hover:bg-black/80 hover:border-white/40 w-14 h-14 md:w-12 md:h-12"
         onClick={handleNext}
       >
-        <ChevronRight className="w-8 h-8" />
+        <ChevronRight className="w-8 h-8 md:w-7 md:h-7" />
       </Button>
+
+      {/* Added swipe indicator for mobile users */}
+      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 text-white/60 text-sm md:hidden">
+        Swipe left or right to navigate
+      </div>
 
       {/* Main Content */}
       <div className="max-w-4xl max-h-full w-full flex flex-col">
@@ -129,14 +173,24 @@ export function PhotoModal({ photo, photos, onClose, onNavigate }: PhotoModalPro
             </div>
 
             <div className="flex gap-2">
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20" onClick={handleShare}>
-                <Share2 className="w-4 h-4 mr-2" />
-                Share
-              </Button>
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20" onClick={handleDownload}>
-                <Download className="w-4 h-4 mr-2" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/20 border border-white/20"
+                onClick={handleDownload}
+              >
                 Download
               </Button>
+              {navigator.share && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:bg-white/20 border border-white/20"
+                  onClick={handleShare}
+                >
+                  Share
+                </Button>
+              )}
             </div>
           </div>
         </div>
