@@ -122,6 +122,40 @@ export async function getPhotosByAlbumId(albumId: string): Promise<Photo[]> {
   return data || []
 }
 
+export async function getUniqueCategories(): Promise<string[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase.from("albums").select("category").not("category", "is", null).order("category")
+
+  if (error) {
+    console.error("Error fetching categories:", error)
+    return []
+  }
+
+  // Get unique categories
+  const uniqueCategories = [...new Set(data?.map((item) => item.category) || [])]
+  return uniqueCategories
+}
+
+export async function getUniqueYears(): Promise<number[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("albums")
+    .select("event_date")
+    .not("event_date", "is", null)
+    .order("event_date", { ascending: false })
+
+  if (error) {
+    console.error("Error fetching years:", error)
+    return []
+  }
+
+  // Extract years and get unique values
+  const years = data?.map((item) => new Date(item.event_date).getFullYear()).filter((year) => !isNaN(year)) || []
+
+  const uniqueYears = [...new Set(years)].sort((a, b) => b - a) // Sort descending
+  return uniqueYears
+}
+
 export async function getPhotos(): Promise<Photo[]> {
   const supabase = createClient()
   const { data, error } = await supabase.from("photos").select("*").order("created_at", { ascending: false })

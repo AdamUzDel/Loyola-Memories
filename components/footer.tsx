@@ -1,4 +1,5 @@
 import { Heart, Mail, Phone, Globe } from "lucide-react"
+import Image from "next/image"
 
 export function Footer() {
   return (
@@ -8,8 +9,13 @@ export function Footer() {
           {/* School Info */}
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">L</span>
+              <div className="w-8 h-8 flex items-center justify-center">
+                <Image
+                  src={"/loyola_Logo_orig.png"}
+                  alt="Loyola SS - Wau logo full color"
+                  height={100}
+                  width={100}
+                ></Image>
               </div>
               <h3 className="font-semibold text-foreground">Loyola Secondary School</h3>
             </div>
@@ -83,7 +89,7 @@ export function Footer() {
 
         <div className="border-t border-border mt-8 pt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            © 2024 Loyola Secondary School Memory Archive. All rights reserved.
+            since 2025 © Loyola Secondary School Memory Archive. All rights reserved.
           </p>
         </div>
       </div>

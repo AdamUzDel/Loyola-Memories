@@ -6,24 +6,45 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, ImageIcon } from "lucide-react"
-import { getAlbums, type Album } from "@/lib/database"
-
-const categories = [
-  { value: "all", label: "All Albums" },
-  { value: "Academic", label: "Academic" },
-  { value: "Sports", label: "Sports" },
-  { value: "Cultural", label: "Cultural" },
-  { value: "Social", label: "Social" },
-  { value: "Religious", label: "Religious" },
-]
-
-const years = ["All Years", "2024", "2023", "2022", "2021"]
+import { getAlbums, getUniqueCategories, getUniqueYears, type Album } from "@/lib/database"
 
 export function AlbumGrid() {
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [selectedYear, setSelectedYear] = useState("All Years")
   const [albums, setAlbums] = useState<Album[]>([])
+  const [categories, setCategories] = useState<{ value: string; label: string }[]>([])
+  const [years, setYears] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
+  const [filtersLoading, setFiltersLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchFilters() {
+      try {
+        setFiltersLoading(true)
+        const [uniqueCategories, uniqueYears] = await Promise.all([getUniqueCategories(), getUniqueYears()])
+
+        // Build categories array with "All Albums" option
+        const categoryOptions = [
+          { value: "all", label: "All Albums" },
+          ...uniqueCategories.map((cat) => ({ value: cat, label: cat })),
+        ]
+        setCategories(categoryOptions)
+
+        // Build years array with "All Years" option
+        const yearOptions = ["All Years", ...uniqueYears.map((year) => year.toString())]
+        setYears(yearOptions)
+      } catch (error) {
+        console.error("Error fetching filters:", error)
+        // Fallback to empty arrays if there's an error
+        setCategories([{ value: "all", label: "All Albums" }])
+        setYears(["All Years"])
+      } finally {
+        setFiltersLoading(false)
+      }
+    }
+
+    fetchFilters()
+  }, [])
 
   useEffect(() => {
     async function fetchAlbums() {
@@ -45,7 +66,7 @@ export function AlbumGrid() {
     fetchAlbums()
   }, [selectedCategory, selectedYear])
 
-  if (loading) {
+  if (loading || filtersLoading) {
     return (
       <section id="albums" className="py-16 bg-background">
         <div className="container mx-auto px-4">

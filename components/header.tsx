@@ -4,6 +4,8 @@ import { useState } from "react"
 import { Search, Menu, X, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import Image from "next/image"
+import Link from "next/link"
 
 interface HeaderProps {
   onSearch?: (query: string) => void
@@ -24,30 +26,35 @@ export function Header({ onSearch, onFilterToggle }: HeaderProps) {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo and School Name */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-700 rounded-lg flex items-center justify-center shadow-sm">
-              <span className="text-white font-bold text-lg">L</span>
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 flex items-center justify-center">
+              <Image
+                src={"/loyola_Logo_orig.png"}
+                alt="Loyola SS - Wau logo full color"
+                height={100}
+                width={100}
+              ></Image>
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">Loyola Memories</h1>
               <p className="text-sm text-muted-foreground">Secondary School - Wau</p>
             </div>
-          </div>
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
-            <a href="#albums" className="text-foreground hover:text-primary transition-colors">
+            <a href="/#albums" className="text-foreground hover:text-primary transition-colors">
               Albums
             </a>
-            <a href="#events" className="text-foreground hover:text-primary transition-colors">
+            <a href="/#events" className="text-foreground hover:text-primary transition-colors">
               Events
             </a>
-            <a href="#years" className="text-foreground hover:text-primary transition-colors">
+            <a href="/#years" className="text-foreground hover:text-primary transition-colors">
               Years
             </a>
-            <a href="/admin" className="text-foreground hover:text-primary transition-colors">
+            {/* <a href="/admin" className="text-foreground hover:text-primary transition-colors">
               Admin
-            </a>
+            </a> */}
           </nav>
 
           {/* Search and Mobile Menu */}
